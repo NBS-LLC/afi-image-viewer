@@ -15,6 +15,7 @@
             font-family: sans-serif;
             background-color: #f0f0f0;
         }
+
         #image-container {
             display: none;
             max-width: 80%;
@@ -23,19 +24,22 @@
             padding: 10px;
             margin-bottom: 20px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            background-color: white; /* Ensure image container has white background */
+            background-color: white;
         }
+
         #image-container img {
             max-width: 100%;
             max-height: 100%;
-            display: block; /* Removes extra space below image */
-            margin: 0 auto; /* Center the image */
+            display: block;
+            margin: 0 auto;
         }
+
         #controls {
             display: none;
             gap: 10px;
             margin-bottom: 20px;
         }
+
         #controls button {
             padding: 10px 20px;
             cursor: pointer;
@@ -44,23 +48,26 @@
             background-color: #eee;
             transition: background-color 0.3s ease;
         }
+
         #controls button:hover {
             background-color: #ddd;
         }
+
         #controls button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
         }
+
         #url-form {
             margin-bottom: 20px;
-            display: flex; /* Use flexbox for layout */
-            gap: 10px; /* Space between elements */
-            align-items: center; /* Vertically center items */
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
 
         #url-form input {
             padding: 10px;
-            width: 300px; /* Adjust as needed */
+            width: 300px;
             border: 1px solid #ccc;
             border-radius: 5px;
         }
@@ -78,15 +85,17 @@
         #url-form button:hover {
             background-color: #45a049;
         }
+
         #message-container {
             margin-top: 20px;
             color: red;
         }
+
         #filename-display {
             margin-top: 10px;
             font-size: 0.9em;
             color: #555;
-            display: none; /* Initially hidden */
+            display: none;
             text-align: center;
         }
     </style>
@@ -105,7 +114,6 @@
         <button id="prev-btn">Previous</button>
         <button id="next-btn">Next</button>
     </div>
-
     <script>
         const urlForm = document.getElementById('url-form');
         const urlInput = document.getElementById('url-input');
@@ -116,7 +124,6 @@
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
         const filenameDisplay = document.getElementById('filename-display');
-
         let images = [];
         let currentIndex = 0;
 
@@ -127,7 +134,7 @@
                 messageContainer.textContent = "Please enter a URL.";
                 return;
             }
-            messageContainer.textContent = ""; // Clear previous messages.
+            messageContainer.textContent = "";
             loadImages(url);
         });
 
@@ -138,18 +145,14 @@
               throw new Error(`HTTP error! status: ${response.status}`);
             }
             const text = await response.text();
-
-            // Basic parsing of the HTML (assuming a standard Apache directory listing)
             const parser = new DOMParser();
             const doc = parser.parseFromString(text, "text/html");
-            const links = doc.querySelectorAll('a'); // Get all links
+            const links = doc.querySelectorAll('a');
+            images = [];
 
-            images = []; //reset
             links.forEach(link => {
                 const href = link.getAttribute('href');
-                // Basic image check.  Good enough for example
                 if (href.match(/\.(jpe?g|png|gif)$/i)) {
-                    // Construct the absolute URL.  Crucial!
                     const absoluteUrl = new URL(href, url).href;
                     images.push(absoluteUrl);
                 }
@@ -179,22 +182,22 @@
 
         function displayImage() {
             if (images.length === 0) return;
-
             imageElement.src = images[currentIndex];
-            const filename = images[currentIndex].split('/').pop(); // Get filename from URL
+            const filename = images[currentIndex].split('/').pop();
             filenameDisplay.textContent = `Filename: ${filename}`;
+
             imageElement.onload = () => {
                  updateButtonState();
             };
+
             imageElement.onerror = () => {
                 console.error(`Error loading image: ${images[currentIndex]}`);
-                // Remove the current image from the array to prevent retrying to load it
                 images.splice(currentIndex, 1);
                 if (currentIndex >= images.length) {
                     currentIndex = images.length - 1;
                 }
                 if (images.length > 0) {
-                  displayImage(); // Try to display the next image
+                  displayImage();
                 }
                 else{
                     imageContainer.style.display = 'none';
@@ -202,13 +205,12 @@
                     filenameDisplay.style.display = 'none';
                     messageContainer.textContent = "No more images to display"
                 }
-
             };
         }
 
         prevBtn.addEventListener('click', () => {
             if (images.length === 0) return;
-            if (!prevBtn.disabled) { // Check if the button is disabled
+            if (!prevBtn.disabled) {
                 currentIndex = (currentIndex - 1 + images.length) % images.length;
                 displayImage();
             }
@@ -216,7 +218,7 @@
 
         nextBtn.addEventListener('click', () => {
             if (images.length === 0) return;
-            if (!nextBtn.disabled) { // Check if the button is disabled
+            if (!nextBtn.disabled) {
                 currentIndex = (currentIndex + 1) % images.length;
                 displayImage();
             }
@@ -224,10 +226,10 @@
 
         document.addEventListener('keydown', (event) => {
             if (images.length === 0) return;
-            if (event.key === 'ArrowLeft' && !prevBtn.disabled) { // Check if the button is disabled
+            if (event.key === 'ArrowLeft' && !prevBtn.disabled) {
                 currentIndex = (currentIndex - 1 + images.length) % images.length;
                 displayImage();
-            } else if (event.key === 'ArrowRight' && !nextBtn.disabled) { // Check if the button is disabled
+            } else if (event.key === 'ArrowRight' && !nextBtn.disabled) {
                 currentIndex = (currentIndex + 1) % images.length;
                 displayImage();
             }
