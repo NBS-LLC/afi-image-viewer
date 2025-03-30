@@ -183,7 +183,7 @@
                  // Image loaded, no need to do anything, but you could add a message here
             };
             imageElement.onerror = () => {
-                messageContainer.textContent = `Error loading image: ${images[currentIndex]}`;
+                console.error(`Error loading image: ${images[currentIndex]}`);
                 // Remove the current image from the array to prevent retrying to load it
                 images.splice(currentIndex, 1);
                 if (currentIndex >= images.length) {
