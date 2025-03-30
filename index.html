@@ -78,6 +78,13 @@
             margin-top: 20px;
             color: red;
         }
+        #filename-display {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+            display: none; /* Initially hidden */
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -89,6 +96,7 @@
     <div id="image-container">
         <img id="image" src="" alt="Image">
     </div>
+    <div id="filename-display"></div>
     <div id="controls">
         <button id="prev-btn">Previous</button>
         <button id="next-btn">Next</button>
@@ -103,6 +111,7 @@
         const controls = document.getElementById('controls');
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
+        const filenameDisplay = document.getElementById('filename-display');
 
         let images = [];
         let currentIndex = 0;
@@ -146,6 +155,7 @@
                 messageContainer.textContent = "No images found in the provided URL.";
                 imageContainer.style.display = 'none';
                 controls.style.display = 'none';
+                filenameDisplay.style.display = 'none';
                 return;
             }
 
@@ -153,11 +163,13 @@
             displayImage();
             imageContainer.style.display = 'block';
             controls.style.display = 'flex';
+            filenameDisplay.style.display = 'block';
           } catch (error) {
             console.error("Error fetching or parsing the file index:", error);
             messageContainer.textContent = "Error loading images.  Check the URL and your network connection.  The URL must point to an Apache file index.";
             imageContainer.style.display = 'none';
             controls.style.display = 'none';
+            filenameDisplay.style.display = 'none';
           }
         }
 
@@ -165,6 +177,8 @@
             if (images.length === 0) return;
 
             imageElement.src = images[currentIndex];
+            const filename = images[currentIndex].split('/').pop(); // Get filename from URL
+            filenameDisplay.textContent = `Filename: ${filename}`;
             imageElement.onload = () => {
                  // Image loaded, no need to do anything, but you could add a message here
             };
@@ -181,6 +195,7 @@
                 else{
                     imageContainer.style.display = 'none';
                     controls.style.display = 'none';
+                    filenameDisplay.style.display = 'none';
                     messageContainer.textContent = "No more images to display"
                 }
 
@@ -212,4 +227,3 @@
     </script>
 </body>
 </html>
-
