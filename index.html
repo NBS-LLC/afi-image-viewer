@@ -47,6 +47,10 @@
         #controls button:hover {
             background-color: #ddd;
         }
+        #controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
         #url-form {
             margin-bottom: 20px;
             display: flex; /* Use flexbox for layout */
@@ -180,7 +184,7 @@
             const filename = images[currentIndex].split('/').pop(); // Get filename from URL
             filenameDisplay.textContent = `Filename: ${filename}`;
             imageElement.onload = () => {
-                 // Image loaded, no need to do anything, but you could add a message here
+                 updateButtonState();
             };
             imageElement.onerror = () => {
                 console.error(`Error loading image: ${images[currentIndex]}`);
@@ -204,26 +208,46 @@
 
         prevBtn.addEventListener('click', () => {
             if (images.length === 0) return;
-            currentIndex = (currentIndex - 1 + images.length) % images.length;
-            displayImage();
+            if (!prevBtn.disabled) { // Check if the button is disabled
+                currentIndex = (currentIndex - 1 + images.length) % images.length;
+                displayImage();
+            }
         });
 
         nextBtn.addEventListener('click', () => {
             if (images.length === 0) return;
-            currentIndex = (currentIndex + 1) % images.length;
-            displayImage();
-        });
-
-        document.addEventListener('keydown', (event) => {
-            if (images.length === 0) return;
-            if (event.key === 'ArrowLeft') {
-                currentIndex = (currentIndex - 1 + images.length) % images.length;
-                displayImage();
-            } else if (event.key === 'ArrowRight') {
+            if (!nextBtn.disabled) { // Check if the button is disabled
                 currentIndex = (currentIndex + 1) % images.length;
                 displayImage();
             }
         });
+
+        document.addEventListener('keydown', (event) => {
+            if (images.length === 0) return;
+            if (event.key === 'ArrowLeft' && !prevBtn.disabled) { // Check if the button is disabled
+                currentIndex = (currentIndex - 1 + images.length) % images.length;
+                displayImage();
+            } else if (event.key === 'ArrowRight' && !nextBtn.disabled) { // Check if the button is disabled
+                currentIndex = (currentIndex + 1) % images.length;
+                displayImage();
+            }
+        });
+
+        function updateButtonState() {
+            if (images.length === 0) {
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+            } else if (currentIndex === 0) {
+                prevBtn.disabled = true;
+                nextBtn.disabled = false;
+            } else if (currentIndex === images.length - 1) {
+                prevBtn.disabled = false;
+                nextBtn.disabled = true;
+            } else {
+                prevBtn.disabled = false;
+                nextBtn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
