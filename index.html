@@ -23,7 +23,7 @@
             align-items: center;
             max-width: 80%;
             padding: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             background-color: white;
             flex-grow: 1;
@@ -41,6 +41,7 @@
         #controls {
             display: none;
             gap: 10px;
+            margin-top: 10px;
             margin-bottom: 20px;
         }
 
@@ -63,7 +64,7 @@
         }
 
         #url-form {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             display: flex;
             gap: 10px;
             align-items: center;
@@ -91,12 +92,11 @@
         }
 
         #message-container {
-            margin-top: 20px;
+            margin-top: 10px;
             color: red;
         }
 
         #filename-display {
-            margin-bottom: 10px;
             font-size: 0.9em;
             color: #555;
             display: none;
@@ -110,14 +110,14 @@
         <button type="submit">Load Images</button>
     </form>
     <div id="message-container"></div>
-    <div id="controls">
-        <button id="prev-btn">Previous</button>
-        <button id="next-btn">Next</button>
-    </div>
     <div id="image-container">
         <img id="image" src="" alt="Image">
     </div>
     <div id="filename-display"></div>
+    <div id="controls">
+        <button id="prev-btn">Previous</button>
+        <button id="next-btn">Next</button>
+    </div>
     <script>
         const urlForm = document.getElementById('url-form');
         const urlInput = document.getElementById('url-input');
