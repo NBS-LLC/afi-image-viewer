@@ -92,13 +92,18 @@
         #message-container {
             margin-top: 10px;
             color: red;
+            min-height: 1.2em; /* Reserve space for messages */
         }
 
-        #filename-display {
+        #filename-input {
             font-size: 0.9em;
             color: #555;
             display: none;
             text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 5px;
+            width: 50%;
         }
     </style>
 </head>
@@ -111,7 +116,7 @@
     <div id="image-container">
         <img id="image" src="" alt="Image">
     </div>
-    <div id="filename-display"></div>
+    <input type="text" id="filename-input" />
     <div id="controls">
         <button id="prev-btn">Previous</button>
         <button id="next-btn">Next</button>
@@ -125,7 +130,7 @@
         const controls = document.getElementById('controls');
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
-        const filenameDisplay = document.getElementById('filename-display');
+        const filenameInput = document.getElementById('filename-input');
         let images = [];
         let currentIndex = 0;
 
@@ -138,6 +143,23 @@
             }
             messageContainer.textContent = "";
             loadImages(url);
+        });
+
+        filenameInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                const searchName = filenameInput.value.trim();
+                if (!searchName) return;
+
+                const foundIndex = images.findIndex(imgUrl => imgUrl.endsWith('/' + searchName));
+
+                if (foundIndex !== -1) {
+                    currentIndex = foundIndex;
+                    displayImage();
+                    messageContainer.textContent = ""; // Clear any previous error
+                } else {
+                    messageContainer.textContent = `Image "${searchName}" not found.`;
+                }
+            }
         });
 
         async function loadImages(url) {
@@ -164,7 +186,7 @@
                 messageContainer.textContent = "No images found in the provided URL.";
                 imageContainer.style.display = 'none';
                 controls.style.display = 'none';
-                filenameDisplay.style.display = 'none';
+                filenameInput.style.display = 'none';
                 return;
             }
 
@@ -172,13 +194,13 @@
             displayImage();
             imageContainer.style.display = 'flex';
             controls.style.display = 'flex';
-            filenameDisplay.style.display = 'block';
+            filenameInput.style.display = 'block';
           } catch (error) {
             console.error("Error fetching or parsing the file index:", error);
-            messageContainer.textContent = "Error loading images.  Check the URL and your network connection.  The URL must point to an Apache file index.";
+            messageContainer.textContent = "Error loading images. Check the URL and your network connection. The URL must point to an Apache file index.";
             imageContainer.style.display = 'none';
             controls.style.display = 'none';
-            filenameDisplay.style.display = 'none';
+            filenameInput.style.display = 'none';
           }
         }
 
@@ -186,7 +208,7 @@
             if (images.length === 0) return;
             imageElement.src = images[currentIndex];
             const filename = images[currentIndex].split('/').pop();
-            filenameDisplay.textContent = `Filename: ${filename}`;
+            filenameInput.value = filename;
 
             imageElement.onload = () => {
                  updateButtonState();
@@ -204,7 +226,7 @@
                 else{
                     imageContainer.style.display = 'none';
                     controls.style.display = 'none';
-                    filenameDisplay.style.display = 'none';
+                    filenameInput.style.display = 'none';
                     messageContainer.textContent = "No more images to display"
                 }
             };
@@ -227,7 +249,7 @@
         });
 
         document.addEventListener('keydown', (event) => {
-            if (images.length === 0) return;
+            if (images.length === 0 || event.target === filenameInput) return; // Ignore global keydown if typing in input
             if (event.key === 'ArrowLeft' && !prevBtn.disabled) {
                 currentIndex = (currentIndex - 1 + images.length) % images.length;
                 displayImage();
