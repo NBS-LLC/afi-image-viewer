@@ -4,276 +4,429 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apache Index Image Viewer</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            font-family: sans-serif;
-            background-color: #f0f0f0;
-            height: 100vh;
-            padding-top: 20px;
-            box-sizing: border-box;
-        }
-
-        #image-container {
-            display: none;
-            justify-content: center;
-            align-items: center;
-            max-width: 80%;
-            margin-bottom: 10px;
-            background-color: #f0f0f0;
-            flex-grow: 1;
-            min-height: 0;
-        }
-
-        #image-container img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto;
-        }
-
-        #controls {
-            display: none;
-            gap: 10px;
-            margin-top: 10px;
-            margin-bottom: 20px;
-        }
-
-        #controls button {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #eee;
-            transition: background-color 0.3s ease;
-        }
-
-        #controls button:hover {
-            background-color: #ddd;
-        }
-
-        #controls button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        #url-form {
-            margin-bottom: 10px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        #url-form input {
-            padding: 10px;
-            width: 300px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        #url-form button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        #url-form button:hover {
-            background-color: #45a049;
-        }
-
-        #message-container {
-            margin-top: 10px;
-            color: red;
-            min-height: 1.2em; /* Reserve space for messages */
-        }
-
-        #filename-input {
-            font-size: 0.9em;
-            color: #555;
-            display: none;
-            text-align: center;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 5px;
-            width: 50%;
-        }
-    </style>
-</head>
-<body>
-    <form id="url-form">
-        <input type="text" id="url-input" placeholder="Enter Apache file index URL">
-        <button type="submit">Load Images</button>
-    </form>
-    <div id="message-container"></div>
-    <div id="image-container">
-        <img id="image" src="" alt="Image">
-    </div>
-    <input type="text" id="filename-input" />
-    <div id="controls">
-        <button id="prev-btn">Previous</button>
-        <button id="next-btn">Next</button>
-    </div>
-    <script>
-        const urlForm = document.getElementById('url-form');
-        const urlInput = document.getElementById('url-input');
-        const messageContainer = document.getElementById('message-container');
-        const imageContainer = document.getElementById('image-container');
-        const imageElement = document.getElementById('image');
-        const controls = document.getElementById('controls');
-        const prevBtn = document.getElementById('prev-btn');
-        const nextBtn = document.getElementById('next-btn');
-        const filenameInput = document.getElementById('filename-input');
-        let images = [];
-        let currentIndex = 0;
-
-        urlForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            const url = urlInput.value;
-            if (!url) {
-                messageContainer.textContent = "Please enter a URL.";
-                return;
+        <style>
+            body {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin: 0;
+                font-family: sans-serif;
+                background-color: #f0f0f0;
+                height: 100vh;
+                padding-top: 20px;
+                box-sizing: border-box;
             }
-            messageContainer.textContent = "";
-            loadImages(url);
-        });
-
-        filenameInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                const searchName = filenameInput.value.trim();
-                if (!searchName) return;
-
-                const foundIndex = images.findIndex(imgUrl => imgUrl.endsWith('/' + searchName));
-
-                if (foundIndex !== -1) {
-                    currentIndex = foundIndex;
-                    displayImage();
-                    messageContainer.textContent = ""; // Clear any previous error
-                } else {
-                    messageContainer.textContent = `Image "${searchName}" not found.`;
-                }
+    
+            #image-container {
+                display: none;
+                justify-content: center;
+                align-items: center;
+                max-width: 80%;
+                margin-bottom: 10px;
+                background-color: #f0f0f0;
+                flex-grow: 1;
+                min-height: 0;
             }
-        });
-
-        async function loadImages(url) {
-          try {
-            const response = await fetch(url);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
+    
+            #image-container img {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+                display: block;
+                margin: 0 auto;
             }
-            const text = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(text, "text/html");
-            const links = doc.querySelectorAll('a');
-            images = [];
-
-            links.forEach(link => {
-                const href = link.getAttribute('href');
-                if (href.match(/\.(jpe?g|png|gif)$/i)) {
-                    const absoluteUrl = new URL(href, url).href;
-                    images.push(absoluteUrl);
+    
+            #controls {
+                display: none;
+                gap: 10px;
+                margin-top: 10px;
+                margin-bottom: 20px;
+            }
+    
+            #controls button {
+                padding: 10px 20px;
+                cursor: pointer;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                background-color: #eee;
+                transition: background-color 0.3s ease;
+            }
+    
+            #controls button:hover {
+                background-color: #ddd;
+            }
+    
+            #controls button:disabled {
+                background-color: #ccc;
+                cursor: not-allowed;
+            }
+    
+            #url-form {
+                margin-bottom: 10px;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+    
+            #url-form input[type="text"] {
+                padding: 10px;
+                width: 300px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            }
+    
+            #url-form button {
+                padding: 10px 20px;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+            }
+    
+            #url-form button:hover {
+                background-color: #45a049;
+            }
+    
+            #message-container {
+                margin-top: 10px;
+                color: red;
+                min-height: 1.2em; /* Reserve space for messages */
+            }
+    
+            #filename-input {
+                font-size: 0.9em;
+                color: #555;
+                display: none;
+                text-align: center;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                padding: 5px;
+                width: 50%;
+            }
+        </style>
+    </head>
+    <body>
+        <form id="url-form">
+            <input type="text" id="url-input" placeholder="Enter Apache file index URL">
+            <button type="submit">Load Images</button>
+            <div>
+                <input type="checkbox" id="has-subdirs">
+                <label for="has-subdirs">has sub-dirs</label>
+            </div>
+        </form>
+        <div id="message-container"></div>
+        <div id="image-container">
+            <img id="image" src="" alt="Image">
+        </div>
+        <input type="text" id="filename-input" />
+        <div id="controls">
+            <button id="prev-btn">Previous</button>
+            <button id="up-btn" style="display: none;">Up</button>
+            <button id="down-btn" style="display: none;">Down</button>
+            <button id="next-btn">Next</button>
+        </div>
+        <script>
+            const urlForm = document.getElementById('url-form');
+            const urlInput = document.getElementById('url-input');
+            const hasSubdirsCheckbox = document.getElementById('has-subdirs');
+            const messageContainer = document.getElementById('message-container');
+            const imageContainer = document.getElementById('image-container');
+            const imageElement = document.getElementById('image');
+            const controls = document.getElementById('controls');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const upBtn = document.getElementById('up-btn');
+            const downBtn = document.getElementById('down-btn');
+            const filenameInput = document.getElementById('filename-input');
+            
+            let images = [];
+            let currentIndex = 0;
+            let subdirs = [];
+            let currentSubdirIndex = 0;
+    
+            hasSubdirsCheckbox.addEventListener('change', () => {
+                const useSubdirs = hasSubdirsCheckbox.checked;
+                upBtn.style.display = useSubdirs ? 'inline-block' : 'none';
+                downBtn.style.display = useSubdirs ? 'inline-block' : 'none';
+                // Reload images when checkbox state changes
+                if (urlInput.value) {
+                    loadImages(urlInput.value);
                 }
             });
-
-            if (images.length === 0) {
-                messageContainer.textContent = "No images found in the provided URL.";
-                imageContainer.style.display = 'none';
-                controls.style.display = 'none';
-                filenameInput.style.display = 'none';
-                return;
+    
+            urlForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const url = urlInput.value;
+                if (!url) {
+                    messageContainer.textContent = "Please enter a URL.";
+                    return;
+                }
+                messageContainer.textContent = "";
+                loadImages(url);
+            });
+    
+            filenameInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    const searchName = filenameInput.value.trim();
+                    if (!searchName) return;
+    
+                    const foundIndex = images.findIndex(imgUrl => imgUrl.endsWith('/' + searchName));
+    
+                    if (foundIndex !== -1) {
+                        currentIndex = foundIndex;
+                        displayImage();
+                        messageContainer.textContent = ""; // Clear any previous error
+                    } else {
+                        messageContainer.textContent = `Image "${searchName}" not found.`;
+                    }
+                }
+            });
+    
+            async function fetchDirectory(url) {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const text = await response.text();
+                const parser = new DOMParser();
+                return parser.parseFromString(text, "text/html");
             }
-
-            currentIndex = 0;
-            displayImage();
-            imageContainer.style.display = 'flex';
-            controls.style.display = 'flex';
-            filenameInput.style.display = 'block';
-          } catch (error) {
-            console.error("Error fetching or parsing the file index:", error);
-            messageContainer.textContent = "Error loading images. Check the URL and your network connection. The URL must point to an Apache file index.";
-            imageContainer.style.display = 'none';
-            controls.style.display = 'none';
-            filenameInput.style.display = 'none';
-          }
-        }
-
-        function displayImage() {
-            if (images.length === 0) return;
-            imageElement.src = images[currentIndex];
-            const filename = images[currentIndex].split('/').pop();
-            filenameInput.value = filename;
-
-            imageElement.onload = () => {
-                 updateButtonState();
-            };
-
-            imageElement.onerror = () => {
-                console.error(`Error loading image: ${images[currentIndex]}`);
-                images.splice(currentIndex, 1);
-                if (currentIndex >= images.length) {
-                    currentIndex = images.length - 1;
+            
+            async function loadImages(url, isSubdirChange = false) {
+              try {
+                messageContainer.textContent = "";
+                const doc = await fetchDirectory(url);
+                const links = doc.querySelectorAll('a');
+                images = [];
+                
+                if (!isSubdirChange) { // Only reset subdirs if not changing subdirectories
+                    subdirs = [];
+                    currentSubdirIndex = 0;
                 }
-                if (images.length > 0) {
-                  displayImage();
+    
+                if (hasSubdirsCheckbox.checked) {
+                    if (!isSubdirChange) { // Only populate subdirs initially or on fresh load
+                        const baseUrl = new URL(url);
+                        const parentUrl = new URL('../', baseUrl).href;
+                        const selfUrl = new URL('./', baseUrl).href;
+
+                        links.forEach(link => {
+                            const href = link.getAttribute('href');
+                            const resolvedUrl = new URL(href, url);
+
+                            // Exclude parent directory link (../) and current directory link (./)
+                            // by comparing their resolved absolute URLs
+                            if (resolvedUrl.href === parentUrl || resolvedUrl.href === selfUrl) {
+                                return;
+                            }
+
+                            // Check if it's a directory link and it's a child of the base URL
+                            // resolvedUrl.pathname.startsWith(baseUrl.pathname) ensures it's a child path
+                            // resolvedUrl.pathname.length > baseUrl.pathname.length ensures it's a deeper path, not the same directory
+                            if (resolvedUrl.pathname.endsWith('/') &&
+                                resolvedUrl.pathname.startsWith(baseUrl.pathname) &&
+                                resolvedUrl.pathname.length > baseUrl.pathname.length) {
+                                subdirs.push(resolvedUrl.href);
+                            }
+                        });
+                        // Sort subdirectories to ensure consistent order
+                        subdirs.sort();
+                    }
+                    
+                    if (subdirs.length > 0) {
+                        await loadImagesFromSubdir(subdirs[currentSubdirIndex]);
+                    } else {
+                        messageContainer.textContent = "No subdirectories found.";
+                        imageContainer.style.display = 'none';
+                        controls.style.display = 'none';
+                        filenameInput.style.display = 'none';
+                        return;
+                    }
+    
+                } else {
+                    links.forEach(link => {
+                        const href = link.getAttribute('href');
+                        if (href.match(/\.(jpe?g|png|gif)$/i)) {
+                            const absoluteUrl = new URL(href, url).href;
+                            images.push(absoluteUrl);
+                        }
+                    });
                 }
-                else{
+    
+                if (images.length === 0) {
+                    if (!hasSubdirsCheckbox.checked || isSubdirChange) { // Only show message if no subdirs or no images in current subdir
+                        messageContainer.textContent = hasSubdirsCheckbox.checked ? 
+                            `No images found in ${subdirs[currentSubdirIndex] ? new URL(subdirs[currentSubdirIndex]).pathname : 'selected directory'}.` : 
+                            "No images found in the provided URL.";
+                    }
                     imageContainer.style.display = 'none';
                     controls.style.display = 'none';
                     filenameInput.style.display = 'none';
-                    messageContainer.textContent = "No more images to display"
+                    return;
                 }
-            };
-        }
-
-        prevBtn.addEventListener('click', () => {
-            if (images.length === 0) return;
-            if (!prevBtn.disabled) {
-                currentIndex = (currentIndex - 1 + images.length) % images.length;
+    
+                currentIndex = 0;
                 displayImage();
+                imageContainer.style.display = 'flex';
+                controls.style.display = 'flex';
+                filenameInput.style.display = 'block';
+              } catch (error) {
+                console.error("Error fetching or parsing the file index:", error);
+                messageContainer.textContent = "Error loading images. Check the URL and your network connection. The URL must point to an Apache file index.";
+                imageContainer.style.display = 'none';
+                controls.style.display = 'none';
+                filenameInput.style.display = 'none';
+              }
             }
-        });
-
-        nextBtn.addEventListener('click', () => {
-            if (images.length === 0) return;
-            if (!nextBtn.disabled) {
-                currentIndex = (currentIndex + 1) % images.length;
-                displayImage();
+            
+            async function loadImagesFromSubdir(subdirUrl) {
+                messageContainer.textContent = `Loading from: ${new URL(subdirUrl).pathname}`;
+                const doc = await fetchDirectory(subdirUrl);
+                const links = doc.querySelectorAll('a');
+                images = [];
+                links.forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (href.match(/\.(jpe?g|png|gif)$/i)) {
+                        // Prepend the subdirUrl to the image href to get the full path.
+                        // This handles cases where href might be relative to the subdir.
+                        images.push(new URL(href, subdirUrl).href);
+                    }
+                });
+                if (images.length === 0) {
+                    messageContainer.textContent = `No images found in ${new URL(subdirUrl).pathname}`;
+                }
             }
-        });
-
-        document.addEventListener('keydown', (event) => {
-            if (images.length === 0 || event.target === filenameInput) return; // Ignore global keydown if typing in input
-            if (event.key === 'ArrowLeft' && !prevBtn.disabled) {
-                currentIndex = (currentIndex - 1 + images.length) % images.length;
-                displayImage();
-            } else if (event.key === 'ArrowRight' && !nextBtn.disabled) {
-                currentIndex = (currentIndex + 1) % images.length;
-                displayImage();
+    
+            function displayImage() {
+                if (images.length === 0) {
+                    imageElement.src = "";
+                    filenameInput.value = "";
+                    imageContainer.style.display = 'none';
+                    // Only hide controls if there are absolutely no images/subdirs
+                    if (!hasSubdirsCheckbox.checked || subdirs.length === 0) {
+                        controls.style.display = 'none';
+                    }
+                    filenameInput.style.display = 'none';
+                    return;
+                };
+                imageElement.src = images[currentIndex];
+                const filename = images[currentIndex].split('/').pop();
+                filenameInput.value = filename;
+    
+                imageElement.onload = () => {
+                     updateButtonState();
+                };
+    
+                imageElement.onerror = () => {
+                    console.error(`Error loading image: ${images[currentIndex]}`);
+                    // Remove the broken image URL
+                    images.splice(currentIndex, 1);
+                    // Adjust currentIndex if necessary
+                    if (currentIndex >= images.length) {
+                        currentIndex = Math.max(0, images.length - 1);
+                    }
+                    if (images.length > 0) {
+                      displayImage(); // Try to display the next image
+                    }
+                    else{
+                        // No more images in the current list
+                        imageContainer.style.display = 'none';
+                        filenameInput.style.display = 'none';
+                        if (!hasSubdirsCheckbox.checked) { // If not in subdir mode, just show no images
+                            messageContainer.textContent = "No more images to display.";
+                            controls.style.display = 'none';
+                        } else { // If in subdir mode, just say no images in current subdir
+                            messageContainer.textContent = `No more images in ${subdirs[currentSubdirIndex] ? new URL(subdirs[currentSubdirIndex]).pathname : 'current directory'}`;
+                            updateButtonState(); // Update up/down button states
+                        }
+                    }
+                };
             }
-        });
-
-        function updateButtonState() {
-            if (images.length === 0) {
-                prevBtn.disabled = true;
-                nextBtn.disabled = true;
-            } else if (currentIndex === 0) {
-                prevBtn.disabled = true;
-                nextBtn.disabled = false;
-            } else if (currentIndex === images.length - 1) {
-                prevBtn.disabled = false;
-                nextBtn.disabled = true;
-            } else {
-                prevBtn.disabled = false;
-                nextBtn.disabled = false;
+    
+            prevBtn.addEventListener('click', () => {
+                if (images.length === 0) return;
+                if (!prevBtn.disabled) {
+                    currentIndex = (currentIndex - 1 + images.length) % images.length;
+                    displayImage();
+                }
+            });
+    
+            nextBtn.addEventListener('click', () => {
+                if (images.length === 0) return;
+                if (!nextBtn.disabled) {
+                    currentIndex = (currentIndex + 1) % images.length;
+                    displayImage();
+                }
+            });
+            
+            upBtn.addEventListener('click', async () => {
+                if (subdirs.length === 0 || upBtn.disabled) return;
+                if (currentSubdirIndex > 0) {
+                    currentSubdirIndex--;
+                    await loadImages(urlInput.value, true); // Pass true to indicate subdir change
+                    currentIndex = 0;
+                    displayImage();
+                }
+            });
+    
+            downBtn.addEventListener('click', async () => {
+                if (subdirs.length === 0 || downBtn.disabled) return;
+                if (currentSubdirIndex < subdirs.length - 1) {
+                    currentSubdirIndex++;
+                    await loadImages(urlInput.value, true); // Pass true to indicate subdir change
+                    currentIndex = 0;
+                    displayImage();
+                }
+            });
+    
+            document.addEventListener('keydown', (event) => {
+                if (event.target === filenameInput) return; // Ignore global keydown if typing in input
+                
+                if (hasSubdirsCheckbox.checked) {
+                    if (event.key === 'ArrowUp') {
+                        event.preventDefault(); // Prevent page scrolling
+                        upBtn.click();
+                    } else if (event.key === 'ArrowDown') {
+                        event.preventDefault(); // Prevent page scrolling
+                        downBtn.click();
+                    }
+                }
+    
+                if (images.length === 0 && (!hasSubdirsCheckbox.checked || subdirs.length === 0)) return; // Only return if no images AND no subdirs
+    
+                if (event.key === 'ArrowLeft') {
+                    if (!prevBtn.disabled) {
+                        currentIndex = (currentIndex - 1 + images.length) % images.length;
+                        displayImage();
+                    }
+                } else if (event.key === 'ArrowRight') {
+                    if (!nextBtn.disabled) {
+                        currentIndex = (currentIndex + 1) % images.length;
+                        displayImage();
+                    }
+                }
+            });
+    
+            function updateButtonState() {
+                if (images.length === 0) {
+                    prevBtn.disabled = true;
+                    nextBtn.disabled = true;
+                } else {
+                    prevBtn.disabled = (currentIndex === 0);
+                    nextBtn.disabled = (currentIndex === images.length - 1);
+                }
+                
+                if(hasSubdirsCheckbox.checked) {
+                    upBtn.disabled = subdirs.length === 0 || currentSubdirIndex === 0;
+                    downBtn.disabled = subdirs.length === 0 || currentSubdirIndex === subdirs.length - 1;
+                } else {
+                    upBtn.disabled = true;
+                    downBtn.disabled = true;
+                }
             }
-        }
-    </script>
-</body>
-</html>
+        </script>
+    </body>
+    </html>
+    
