@@ -184,6 +184,23 @@
                 }
             });
     
+            function parseSizeToBytes(sizeString) {
+                if (!sizeString || sizeString.trim() === '-' || sizeString.trim() === '') {
+                    return 0; // Or handle as an unknown/default small size
+                }
+                const s = sizeString.trim().toUpperCase();
+                const numericValue = parseFloat(s);
+    
+                if (s.endsWith('K')) {
+                    return numericValue * 1024;
+                } else if (s.endsWith('M')) {
+                    return numericValue * 1024 * 1024;
+                } else if (s.endsWith('G')) {
+                    return numericValue * 1024 * 1024 * 1024;
+                }
+                return numericValue; // Assume bytes if no unit
+            }
+    
             async function fetchDirectory(url) {
                 const response = await fetch(url);
                 if (!response.ok) {
@@ -249,8 +266,20 @@
                     links.forEach(link => {
                         const href = link.getAttribute('href');
                         if (href.match(/\.(jpe?g|png|gif)$/i)) {
-                            const absoluteUrl = new URL(href, url).href;
-                            images.push(absoluteUrl);
+                            const trElement = link.closest('tr');
+                            if (trElement) {
+                                const tdElements = trElement.querySelectorAll('td');
+                                if (tdElements.length > 3) {
+                                    const sizeString = tdElements[3].textContent;
+                                    const fileSize = parseSizeToBytes(sizeString);
+                                    const MIN_SIZE_BYTES = 20 * 1024; // 20 KB
+    
+                                    if (fileSize >= MIN_SIZE_BYTES) {
+                                        const absoluteUrl = new URL(href, url).href;
+                                        images.push(absoluteUrl);
+                                    }
+                                }
+                            }
                         }
                     });
                 }
@@ -289,9 +318,21 @@
                 links.forEach(link => {
                     const href = link.getAttribute('href');
                     if (href.match(/\.(jpe?g|png|gif)$/i)) {
-                        // Prepend the subdirUrl to the image href to get the full path.
-                        // This handles cases where href might be relative to the subdir.
-                        images.push(new URL(href, subdirUrl).href);
+                        const trElement = link.closest('tr');
+                        if (trElement) {
+                            const tdElements = trElement.querySelectorAll('td');
+                            if (tdElements.length > 3) {
+                                const sizeString = tdElements[3].textContent;
+                                const fileSize = parseSizeToBytes(sizeString);
+                                const MIN_SIZE_BYTES = 20 * 1024; // 20 KB
+    
+                                if (fileSize >= MIN_SIZE_BYTES) {
+                                    // Prepend the subdirUrl to the image href to get the full path.
+                                    // This handles cases where href might be relative to the subdir.
+                                    images.push(new URL(href, subdirUrl).href);
+                                }
+                            }
+                        }
                     }
                 });
                 if (images.length === 0) {
