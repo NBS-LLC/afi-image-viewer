@@ -269,8 +269,8 @@
                                 subdirs.push(resolvedUrl.href);
                             }
                         });
-                        // Sort subdirectories to ensure consistent order
-                        subdirs.sort();
+                        // Sort subdirectories to ensure consistent natural order
+                        subdirs.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
                     }
                     
                     if (subdirs.length > 0) {
