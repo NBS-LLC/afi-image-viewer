@@ -98,12 +98,28 @@
             #filename-input {
                 font-size: 0.9em;
                 color: #555;
-                display: none;
                 text-align: center;
                 border: 1px solid #ccc;
                 border-radius: 5px;
                 padding: 5px;
-                width: 50%;
+                width: 25ch; /* Approximately 30 characters */
+            }
+    
+            #file-info-container {
+                display: none; /* Hidden by default */
+                align-items: center;
+                gap: 10px;
+                margin-top: 10px;
+                margin-bottom: 20px;
+            }
+    
+            #current-directory-display {
+                font-size: 0.9em;
+                color: #555;
+                max-width: 300px; /* Adjust as needed */
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
             }
         </style>
     </head>
@@ -120,7 +136,10 @@
         <div id="image-container">
             <img id="image" src="" alt="Image">
         </div>
-        <input type="text" id="filename-input" />
+        <div id="file-info-container">
+            <span id="current-directory-display"></span>
+            <input type="text" id="filename-input" />
+        </div>
         <div id="controls">
             <button id="prev-btn">Previous</button>
             <button id="up-btn" style="display: none;">Up</button>
@@ -140,6 +159,8 @@
             const upBtn = document.getElementById('up-btn');
             const downBtn = document.getElementById('down-btn');
             const filenameInput = document.getElementById('filename-input');
+            const currentDirectoryDisplay = document.getElementById('current-directory-display');
+            const fileInfoContainer = document.getElementById('file-info-container');
             
             let images = [];
             let currentIndex = 0;
@@ -253,16 +274,27 @@
                     }
                     
                     if (subdirs.length > 0) {
+                        currentDirectoryDisplay.textContent = new URL(subdirs[currentSubdirIndex]).pathname;
+                        fileInfoContainer.style.display = 'flex';
+                        filenameInput.style.display = 'block';
                         await loadImagesFromSubdir(subdirs[currentSubdirIndex]);
+                        // After loading from subdir, check if any images were found
+                        if (images.length === 0) {
+                            fileInfoContainer.style.display = 'none';
+                            filenameInput.style.display = 'none';
+                        }
                     } else {
                         messageContainer.textContent = "No subdirectories found.";
                         imageContainer.style.display = 'none';
                         controls.style.display = 'none';
-                        filenameInput.style.display = 'none';
+                        fileInfoContainer.style.display = 'none';
+                        currentDirectoryDisplay.textContent = '';
+                        filenameInput.style.display = 'none'; // Ensure hidden if no subdirs
                         return;
                     }
     
                 } else {
+                    currentDirectoryDisplay.textContent = '';
                     links.forEach(link => {
                         const href = link.getAttribute('href');
                         if (href.match(/\.(jpe?g|png|gif)$/i)) {
@@ -292,7 +324,8 @@
                     }
                     imageContainer.style.display = 'none';
                     controls.style.display = 'none';
-                    filenameInput.style.display = 'none';
+                    fileInfoContainer.style.display = 'none';
+                    currentDirectoryDisplay.textContent = '';
                     return;
                 }
     
@@ -300,18 +333,22 @@
                 displayImage();
                 imageContainer.style.display = 'flex';
                 controls.style.display = 'flex';
-                filenameInput.style.display = 'block';
+                fileInfoContainer.style.display = 'flex'; // Ensure the container is visible
+                filenameInput.style.display = 'block'; // Ensure filename input is visible
               } catch (error) {
                 console.error("Error fetching or parsing the file index:", error);
                 messageContainer.textContent = "Error loading images. Check the URL and your network connection. The URL must point to an Apache file index.";
                 imageContainer.style.display = 'none';
                 controls.style.display = 'none';
-                filenameInput.style.display = 'none';
+                fileInfoContainer.style.display = 'none';
+                currentDirectoryDisplay.textContent = '';
               }
             }
             
             async function loadImagesFromSubdir(subdirUrl) {
-                messageContainer.textContent = `Loading from: ${new URL(subdirUrl).pathname}`;
+                currentDirectoryDisplay.textContent = new URL(subdirUrl).pathname;
+                fileInfoContainer.style.display = 'flex';
+                filenameInput.style.display = 'block';
                 const doc = await fetchDirectory(subdirUrl);
                 const links = doc.querySelectorAll('a');
                 images = [];
@@ -345,16 +382,20 @@
                     imageElement.src = "";
                     filenameInput.value = "";
                     imageContainer.style.display = 'none';
+                    fileInfoContainer.style.display = 'none'; // Hide the whole container
                     // Only hide controls if there are absolutely no images/subdirs
                     if (!hasSubdirsCheckbox.checked || subdirs.length === 0) {
                         controls.style.display = 'none';
                     }
-                    filenameInput.style.display = 'none';
+                    currentDirectoryDisplay.textContent = ''; // Clear directory display
                     return;
                 };
                 imageElement.src = images[currentIndex];
                 const filename = images[currentIndex].split('/').pop();
                 filenameInput.value = filename;
+    
+                fileInfoContainer.style.display = 'flex'; // Ensure container is visible
+                filenameInput.style.display = 'block'; // Ensure input is visible
     
                 imageElement.onload = () => {
                      updateButtonState();
@@ -374,12 +415,13 @@
                     else{
                         // No more images in the current list
                         imageContainer.style.display = 'none';
-                        filenameInput.style.display = 'none';
+                        fileInfoContainer.style.display = 'none'; // Hide the whole container
                         if (!hasSubdirsCheckbox.checked) { // If not in subdir mode, just show no images
                             messageContainer.textContent = "No more images to display.";
                             controls.style.display = 'none';
                         } else { // If in subdir mode, just say no images in current subdir
                             messageContainer.textContent = `No more images in ${subdirs[currentSubdirIndex] ? new URL(subdirs[currentSubdirIndex]).pathname : 'current directory'}`;
+                            currentDirectoryDisplay.textContent = new URL(subdirs[currentSubdirIndex]).pathname; // Keep current subdir displayed
                             updateButtonState(); // Update up/down button states
                         }
                     }
