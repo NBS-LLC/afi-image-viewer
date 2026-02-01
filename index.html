@@ -95,31 +95,27 @@
                 min-height: 1.2em; /* Reserve space for messages */
             }
     
-            #filename-input {
+            #filename-input, #subdir-input {
                 font-size: 0.9em;
                 color: #555;
                 text-align: center;
                 border: 1px solid #ccc;
                 border-radius: 5px;
                 padding: 5px;
-                width: 25ch; /* Approximately 30 characters */
+                width: 25ch; /* Approximately 25 characters */
             }
     
             #file-info-container {
                 display: none; /* Hidden by default */
                 align-items: center;
-                gap: 10px;
+                gap: 5px; /* Reduced gap */
                 margin-top: 10px;
                 margin-bottom: 20px;
             }
     
-            #current-directory-display {
+            #current-directory-prefix {
                 font-size: 0.9em;
                 color: #555;
-                max-width: 300px; /* Adjust as needed */
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
             }
         </style>
     </head>
@@ -137,7 +133,9 @@
             <img id="image" src="" alt="Image">
         </div>
         <div id="file-info-container">
-            <span id="current-directory-display"></span>
+            <span id="current-directory-prefix"></span>
+            <input type="text" id="subdir-input" />
+            <span>/</span>
             <input type="text" id="filename-input" />
         </div>
         <div id="controls">
@@ -159,7 +157,8 @@
             const upBtn = document.getElementById('up-btn');
             const downBtn = document.getElementById('down-btn');
             const filenameInput = document.getElementById('filename-input');
-            const currentDirectoryDisplay = document.getElementById('current-directory-display');
+            const subdirInput = document.getElementById('subdir-input');
+            const currentDirectoryPrefix = document.getElementById('current-directory-prefix');
             const fileInfoContainer = document.getElementById('file-info-container');
             
             let images = [];
@@ -171,6 +170,8 @@
                 const useSubdirs = hasSubdirsCheckbox.checked;
                 upBtn.style.display = useSubdirs ? 'inline-block' : 'none';
                 downBtn.style.display = useSubdirs ? 'inline-block' : 'none';
+                subdirInput.style.display = useSubdirs ? 'inline-block' : 'none'; // Show/hide subdir input
+                currentDirectoryPrefix.style.display = useSubdirs ? 'inline-block' : 'none'; // Show/hide prefix
                 // Reload images when checkbox state changes
                 if (urlInput.value) {
                     loadImages(urlInput.value);
@@ -232,6 +233,17 @@
                 return parser.parseFromString(text, "text/html");
             }
             
+            function parseSubdirPath(subdirUrl) {
+                const url = new URL(subdirUrl);
+                const pathParts = url.pathname.split('/').filter(part => part !== '');
+                if (pathParts.length > 0) {
+                    const lastPart = pathParts.pop();
+                    const parentPath = '/' + pathParts.join('/') + (pathParts.length > 0 ? '/' : '');
+                    return { parentPath, lastPart };
+                }
+                return { parentPath: '/', lastPart: '' };
+            }
+    
             async function loadImages(url, isSubdirChange = false) {
               try {
                 messageContainer.textContent = "";
@@ -274,7 +286,9 @@
                     }
                     
                     if (subdirs.length > 0) {
-                        currentDirectoryDisplay.textContent = new URL(subdirs[currentSubdirIndex]).pathname;
+                        const { parentPath, lastPart } = parseSubdirPath(subdirs[currentSubdirIndex]);
+                        currentDirectoryPrefix.textContent = parentPath;
+                        subdirInput.value = lastPart;
                         fileInfoContainer.style.display = 'flex';
                         filenameInput.style.display = 'block';
                         await loadImagesFromSubdir(subdirs[currentSubdirIndex]);
@@ -282,19 +296,25 @@
                         if (images.length === 0) {
                             fileInfoContainer.style.display = 'none';
                             filenameInput.style.display = 'none';
+                            subdirInput.style.display = 'none';
+                            currentDirectoryPrefix.style.display = 'none';
                         }
                     } else {
                         messageContainer.textContent = "No subdirectories found.";
                         imageContainer.style.display = 'none';
                         controls.style.display = 'none';
                         fileInfoContainer.style.display = 'none';
-                        currentDirectoryDisplay.textContent = '';
+                        currentDirectoryPrefix.textContent = '';
+                        subdirInput.value = '';
                         filenameInput.style.display = 'none'; // Ensure hidden if no subdirs
+                        subdirInput.style.display = 'none';
+                        currentDirectoryPrefix.style.display = 'none';
                         return;
                     }
     
                 } else {
-                    currentDirectoryDisplay.textContent = '';
+                    currentDirectoryPrefix.textContent = '';
+                    subdirInput.value = '';
                     links.forEach(link => {
                         const href = link.getAttribute('href');
                         if (href.match(/\.(jpe?g|png|gif)$/i)) {
@@ -325,7 +345,8 @@
                     imageContainer.style.display = 'none';
                     controls.style.display = 'none';
                     fileInfoContainer.style.display = 'none';
-                    currentDirectoryDisplay.textContent = '';
+                    currentDirectoryPrefix.textContent = '';
+                    subdirInput.value = '';
                     return;
                 }
     
@@ -335,20 +356,29 @@
                 controls.style.display = 'flex';
                 fileInfoContainer.style.display = 'flex'; // Ensure the container is visible
                 filenameInput.style.display = 'block'; // Ensure filename input is visible
+                if (hasSubdirsCheckbox.checked) {
+                    subdirInput.style.display = 'inline-block';
+                    currentDirectoryPrefix.style.display = 'inline-block';
+                }
               } catch (error) {
                 console.error("Error fetching or parsing the file index:", error);
                 messageContainer.textContent = "Error loading images. Check the URL and your network connection. The URL must point to an Apache file index.";
                 imageContainer.style.display = 'none';
                 controls.style.display = 'none';
                 fileInfoContainer.style.display = 'none';
-                currentDirectoryDisplay.textContent = '';
+                currentDirectoryPrefix.textContent = '';
+                subdirInput.value = '';
               }
             }
             
             async function loadImagesFromSubdir(subdirUrl) {
-                currentDirectoryDisplay.textContent = new URL(subdirUrl).pathname;
+                const { parentPath, lastPart } = parseSubdirPath(subdirUrl);
+                currentDirectoryPrefix.textContent = parentPath;
+                subdirInput.value = lastPart;
                 fileInfoContainer.style.display = 'flex';
                 filenameInput.style.display = 'block';
+                subdirInput.style.display = 'inline-block';
+                currentDirectoryPrefix.style.display = 'inline-block';
                 const doc = await fetchDirectory(subdirUrl);
                 const links = doc.querySelectorAll('a');
                 images = [];
@@ -387,7 +417,8 @@
                     if (!hasSubdirsCheckbox.checked || subdirs.length === 0) {
                         controls.style.display = 'none';
                     }
-                    currentDirectoryDisplay.textContent = ''; // Clear directory display
+                    currentDirectoryPrefix.textContent = ''; // Clear directory display
+                    subdirInput.value = '';
                     return;
                 };
                 imageElement.src = images[currentIndex];
@@ -396,6 +427,18 @@
     
                 fileInfoContainer.style.display = 'flex'; // Ensure container is visible
                 filenameInput.style.display = 'block'; // Ensure input is visible
+                if (hasSubdirsCheckbox.checked) {
+                    const { parentPath, lastPart } = parseSubdirPath(subdirs[currentSubdirIndex]);
+                    currentDirectoryPrefix.textContent = parentPath;
+                    subdirInput.value = lastPart;
+                    subdirInput.style.display = 'inline-block';
+                    currentDirectoryPrefix.style.display = 'inline-block';
+                } else {
+                    currentDirectoryPrefix.textContent = '';
+                    subdirInput.value = '';
+                    subdirInput.style.display = 'none';
+                    currentDirectoryPrefix.style.display = 'none';
+                }
     
                 imageElement.onload = () => {
                      updateButtonState();
@@ -421,7 +464,9 @@
                             controls.style.display = 'none';
                         } else { // If in subdir mode, just say no images in current subdir
                             messageContainer.textContent = `No more images in ${subdirs[currentSubdirIndex] ? new URL(subdirs[currentSubdirIndex]).pathname : 'current directory'}`;
-                            currentDirectoryDisplay.textContent = new URL(subdirs[currentSubdirIndex]).pathname; // Keep current subdir displayed
+                            const { parentPath, lastPart } = parseSubdirPath(subdirs[currentSubdirIndex]);
+                            currentDirectoryPrefix.textContent = parentPath;
+                            subdirInput.value = lastPart;
                             updateButtonState(); // Update up/down button states
                         }
                     }
@@ -464,8 +509,33 @@
                 }
             });
     
+            subdirInput.addEventListener('keydown', async (event) => {
+                if (event.key === 'Enter') {
+                    const searchSubdirName = subdirInput.value.trim();
+                    if (!searchSubdirName) return;
+    
+                    const currentBaseUrl = urlInput.value;
+                    const { parentPath } = parseSubdirPath(subdirs[currentSubdirIndex]);
+                    
+                    // Construct the full path to search for
+                    const potentialSubdirHref = `${new URL(currentBaseUrl).origin}${parentPath}${searchSubdirName}/`;
+    
+                    const foundIndex = subdirs.findIndex(subdirUrl => subdirUrl === potentialSubdirHref);
+    
+                    if (foundIndex !== -1) {
+                        currentSubdirIndex = foundIndex;
+                        await loadImages(currentBaseUrl, true);
+                        currentIndex = 0;
+                        displayImage();
+                        messageContainer.textContent = ""; // Clear any previous error
+                    } else {
+                        messageContainer.textContent = `Subdirectory "${searchSubdirName}" not found.`;
+                    }
+                }
+            });
+
             document.addEventListener('keydown', (event) => {
-                if (event.target === filenameInput) return; // Ignore global keydown if typing in input
+                if (event.target === filenameInput || event.target === subdirInput) return; // Ignore global keydown if typing in input
                 
                 if (hasSubdirsCheckbox.checked) {
                     if (event.key === 'ArrowUp') {
@@ -504,9 +574,13 @@
                 if(hasSubdirsCheckbox.checked) {
                     upBtn.disabled = subdirs.length === 0 || currentSubdirIndex === 0;
                     downBtn.disabled = subdirs.length === 0 || currentSubdirIndex === subdirs.length - 1;
+                    subdirInput.style.display = 'inline-block';
+                    currentDirectoryPrefix.style.display = 'inline-block';
                 } else {
                     upBtn.disabled = true;
                     downBtn.disabled = true;
+                    subdirInput.style.display = 'none';
+                    currentDirectoryPrefix.style.display = 'none';
                 }
             }
         </script>
