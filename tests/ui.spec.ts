@@ -295,16 +295,40 @@ test.describe('AFI Image Viewer E2E Tests', () => {
   // --- Keyboard Navigation ---
   test('should navigate next/previous image using arrow keys', async ({ page }) => {
     // Precondition: Load multiple images.
-    // Steps:
-    // 1. Press 'ArrowRight'. Expect next image.
-    // 2. Press 'ArrowLeft'. Expect previous image.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#url-form button[type="submit"]').click();
+    await page.waitForLoadState('networkidle'); // Ensure initial load completes
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image1.jpg'); // Ensure first image is loaded
+
+    // Press 'ArrowRight'. Expect next image.
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image2.png');
+
+    // Press 'ArrowLeft'. Expect previous image.
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image1.jpg');
   });
 
   test('should navigate up/down subdirectories using arrow keys', async ({ page }) => {
     // Precondition: Load images from a URL with multiple subdirectories, "has sub-dirs" checked.
-    // Steps:
-    // 1. Press 'ArrowDown'. Expect next subdir.
-    // 2. Press 'ArrowUp'. Expect previous subdir.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#has-subdirs').check();
+    await page.waitForLoadState('networkidle'); // Ensure initial load from first subdir completes
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/subdir1/subdir1_imageA.jpg'); // Ensure first subdir's first image is loaded
+
+    // Press 'ArrowDown'. Expect next subdir.
+    await page.keyboard.press('ArrowDown');
+    await page.waitForLoadState('networkidle'); // Wait for load from second subdir
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/subdir2/subdir2_imageX.jpg');
+    await expect(page.locator('#subdir-input')).toHaveValue('subdir2');
+
+    // Press 'ArrowUp'. Expect previous subdir.
+    await page.keyboard.press('ArrowUp');
+    await page.waitForLoadState('networkidle'); // Wait for load from first subdir
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/subdir1/subdir1_imageA.jpg');
+    await expect(page.locator('#subdir-input')).toHaveValue('subdir1');
   });
 
 });
