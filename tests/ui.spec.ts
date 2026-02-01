@@ -1,10 +1,84 @@
 import { test, expect } from '@playwright/test';
+import path from 'path';
+
+// A tiny 1x1 transparent GIF (Base64 encoded)
+const TRANSPARENT_PIXEL_GIF_BASE64 = 'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
 
 test.describe('AFI Image Viewer E2E Tests', () => {
 
   test.beforeEach(async ({ page }) => {
     // Navigate to the base URL before each test
     await page.goto('./');
+
+    // Route for the mock no-images index
+    await page.route('http://localhost/mock-no-images/', async route => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'text/html',
+            path: path.join(__dirname, 'test_data', 'mock-no-images.html'),
+        });
+    });
+
+    // Route for the mock main index
+    await page.route('http://localhost/mock-images/', async route => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'text/html',
+            path: path.join(__dirname, 'test_data', 'mock-index.html'),
+        });
+    });
+
+    await page.route('http://localhost/mock-images/index.html', async route => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'text/html',
+            path: path.join(__dirname, 'test_data', 'mock-index.html'),
+        });
+    });
+
+    // Route for subdir1 index
+    await page.route('http://localhost/mock-images/subdir1/', async route => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'text/html',
+            path: path.join(__dirname, 'test_data', 'subdir1', 'index.html'),
+        });
+    });
+
+    // Route for subdir2 index
+    await page.route('http://localhost/mock-images/subdir2/', async route => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'text/html',
+            path: path.join(__dirname, 'test_data', 'subdir2', 'index.html'),
+        });
+    });
+    
+    // Generic route for image files under mock-images/
+    await page.route(/http:\/\/localhost\/mock-images\/.*\.(jpg|png|gif)$/, async route => {
+        const imageUrl = route.request().url();
+        const extension = imageUrl.split('.').pop();
+        let contentType = 'application/octet-stream'; // Default
+        if (extension === 'jpg') contentType = 'image/jpeg';
+        else if (extension === 'png') contentType = 'image/png';
+        else if (extension === 'gif') contentType = 'image/gif';
+
+        await route.fulfill({
+            status: 200,
+            contentType: contentType,
+            body: Buffer.from(TRANSPARENT_PIXEL_GIF_BASE64, 'base64'),
+        });
+    });
+
+    // Route for a mock unreachable URL
+    await page.route('http://localhost/unreachable-url/', async route => {
+        await route.fulfill({
+            status: 404,
+            body: 'Not Found',
+        });
+    });
+
+
   });
 
   test('should display the correct title', async ({ page }) => {
@@ -15,56 +89,93 @@ test.describe('AFI Image Viewer E2E Tests', () => {
   // --- Core Image Loading and Navigation ---
 
   test('should load images from a valid URL and display the first image', async ({ page }) => {
-    // Steps:
-    // 1. Enter a valid Apache index URL into the input field.
-    // 2. Click the "Load Images" button.
-    // 3. Expect the image container and controls to be visible.
-    // 4. Expect the first image to be displayed.
-    // 5. Expect the filename input to show the first image's name.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#url-form button[type="submit"]').click();
+
+    // Wait for the mock index to be fetched, which triggers the UI update
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image1.jpg');
+    await expect(page.locator('#image-container')).toBeVisible();
+    await expect(page.locator('#filename-input')).toHaveValue('image1.jpg');
   });
 
   test('should navigate to the next image when "Next" button is clicked', async ({ page }) => {
     // Precondition: Load multiple images.
-    // Steps:
-    // 1. Click the "Next" button.
-    // 2. Expect a different image to be displayed.
-    // 3. Expect the filename input to update.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#url-form button[type="submit"]').click();
+    await page.waitForLoadState('networkidle'); // Ensure initial load completes
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image1.jpg'); // Ensure first image is loaded
+
+    await page.locator('#next-btn').click();
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image2.png');
+    await expect(page.locator('#filename-input')).toHaveValue('image2.png');
   });
 
   test('should navigate to the previous image when "Previous" button is clicked', async ({ page }) => {
     // Precondition: Load multiple images and navigate past the first one.
-    // Steps:
-    // 1. Click the "Previous" button.
-    // 2. Expect a different image to be displayed.
-    // 3. Expect the filename input to update.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#url-form button[type="submit"]').click();
+    await page.waitForLoadState('networkidle'); // Ensure initial load completes
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image1.jpg'); // Ensure first image is loaded
+
+    // Navigate to the second image first
+    await page.locator('#next-btn').click();
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image2.png'); // Ensure second image is loaded
+
+    await page.locator('#prev-btn').click();
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image1.jpg');
+    await expect(page.locator('#filename-input')).toHaveValue('image1.jpg');
   });
 
   test('should disable "Previous" button on the first image', async ({ page }) => {
     // Precondition: Load multiple images, ensure first image is displayed.
-    // Steps:
-    // 1. Expect the "Previous" button to be disabled.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#url-form button[type="submit"]').click();
+    await page.waitForLoadState('networkidle'); // Ensure initial load completes
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image1.jpg'); // Ensure first image is loaded
+
+    await expect(page.locator('#prev-btn')).toBeDisabled();
   });
 
   test('should disable "Next" button on the last image', async ({ page }) => {
     // Precondition: Load multiple images, navigate to the last image.
-    // Steps:
-    // 1. Expect the "Next" button to be disabled.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#url-form button[type="submit"]').click();
+    await page.waitForLoadState('networkidle'); // Ensure initial load completes
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image1.jpg'); // Ensure first image is loaded
+
+    // Navigate to the last image (image2.png is the last in mock-index.html)
+    await page.locator('#next-btn').click();
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image2.png'); // Ensure second (last) image is loaded
+
+    await expect(page.locator('#next-btn')).toBeDisabled();
   });
 
   test('should display a message if no images are found for a valid URL', async ({ page }) => {
-    // Steps:
-    // 1. Enter a URL with no images.
-    // 2. Click the "Load Images" button.
-    // 3. Expect a "No images found" message to be displayed.
-    // 4. Expect image container and controls to be hidden.
+    await page.locator('#url-input').fill('http://localhost/mock-no-images/');
+    await page.locator('#url-form button[type="submit"]').click();
+    await page.waitForLoadState('networkidle'); // Ensure initial load completes
+
+    await expect(page.locator('#message-container')).toContainText('No images found');
+    await expect(page.locator('#image-container')).not.toBeVisible();
+    await expect(page.locator('#controls')).not.toBeVisible();
   });
 
   test('should display an error message for an invalid or unreachable URL', async ({ page }) => {
-    // Steps:
-    // 1. Enter an invalid/unreachable URL.
-    // 2. Click the "Load Images" button.
-    // 3. Expect an error message to be displayed.
-    // 4. Expect image container and controls to be hidden.
+    await page.locator('#url-input').fill('http://localhost/unreachable-url/');
+    await page.locator('#url-form button[type="submit"]').click();
+    await page.waitForLoadState('networkidle'); // Wait for network activity to settle after error
+
+    await expect(page.locator('#message-container')).toContainText('Error loading images');
+    await expect(page.locator('#image-container')).not.toBeVisible();
+    await expect(page.locator('#controls')).not.toBeVisible();
   });
 
   // --- Subdirectory Functionality ---
