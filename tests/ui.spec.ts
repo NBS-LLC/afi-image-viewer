@@ -181,35 +181,78 @@ test.describe('AFI Image Viewer E2E Tests', () => {
   // --- Subdirectory Functionality ---
 
   test('should enable subdirectory controls when "has sub-dirs" is checked', async ({ page }) => {
-    // Steps:
-    // 1. Check the "has sub-dirs" checkbox.
-    // 2. Expect "Up" and "Down" buttons, subdir input, current directory prefix, and separator to be visible.
+    // Expect controls to be hidden initially
+    await expect(page.locator('#up-btn')).not.toBeVisible();
+    await expect(page.locator('#down-btn')).not.toBeVisible();
+    await expect(page.locator('#subdir-input')).not.toBeVisible();
+    await expect(page.locator('#current-directory-prefix')).not.toBeVisible();
+    await expect(page.locator('#subdir-separator')).not.toBeVisible();
+
+    // Fill URL input (this will cause loadImages to be called when checkbox is checked)
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+
+    // Check the "has sub-dirs" checkbox
+    await page.locator('#has-subdirs').check();
+    await page.waitForLoadState('networkidle'); // Wait for images to reload due to checkbox change
+
+    // Expect controls to become visible
+    await expect(page.locator('#up-btn')).toBeVisible();
+    await expect(page.locator('#down-btn')).toBeVisible();
+    await expect(page.locator('#subdir-input')).toBeVisible();
+    await expect(page.locator('#current-directory-prefix')).toBeVisible();
+    await expect(page.locator('#subdir-separator')).toBeVisible();
   });
 
   test('should load images from the first subdirectory when "has sub-dirs" is checked', async ({ page }) => {
     // Precondition: Use a URL with subdirectories.
-    // Steps:
-    // 1. Check the "has sub-dirs" checkbox.
-    // 2. Enter a valid Apache index URL with subdirs.
-    // 3. Click "Load Images".
-    // 4. Expect images from the first subdir to be displayed.
-    // 5. Expect subdir input and prefix to show the first subdir.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#has-subdirs').check();
+    await page.waitForLoadState('networkidle'); // This will trigger loadImages with subdirs
+
+    // Expect images from the first subdir to be displayed
+    // The application should automatically load the first subdirectory's images
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/subdir1/subdir1_imageA.jpg');
+    await expect(page.locator('#filename-input')).toHaveValue('subdir1_imageA.jpg');
+    await expect(page.locator('#current-directory-prefix')).toHaveText('/mock-images/');
+    await expect(page.locator('#subdir-input')).toHaveValue('subdir1');
   });
 
   test('should navigate to the next subdirectory when "Down" button is clicked', async ({ page }) => {
-    // Precondition: Load images from a URL with multiple subdirectories.
-    // Steps:
-    // 1. Click "Down" button.
-    // 2. Expect images from the next subdir to be displayed.
-    // 3. Expect subdir input and prefix to update.
+    // Precondition: Load images from a URL with multiple subdirectories and "has sub-dirs" checked.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#has-subdirs').check();
+    await page.waitForLoadState('networkidle'); // Ensure initial load from first subdir completes
+
+    // Ensure we are on the first subdirectory's first image
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/subdir1/subdir1_imageA.jpg');
+
+    await page.locator('#down-btn').click();
+    await page.waitForLoadState('networkidle'); // Wait for load from second subdir
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/subdir2/subdir2_imageX.jpg');
+    await expect(page.locator('#filename-input')).toHaveValue('subdir2_imageX.jpg');
+    await expect(page.locator('#current-directory-prefix')).toHaveText('/mock-images/');
+    await expect(page.locator('#subdir-input')).toHaveValue('subdir2');
   });
 
   test('should navigate to the previous subdirectory when "Up" button is clicked', async ({ page }) => {
-    // Precondition: Load images from a URL with multiple subdirectories and navigated down at least once.
-    // Steps:
-    // 1. Click "Up" button.
-    // 2. Expect images from the previous subdir to be displayed.
-    // 3. Expect subdir input and prefix to update.
+    // Precondition: Load images from a URL with multiple subdirectories and "has sub-dirs" checked.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#has-subdirs').check();
+    await page.waitForLoadState('networkidle'); // Ensure initial load from first subdir completes
+
+    // Navigate to the second subdirectory first
+    await page.locator('#down-btn').click();
+    await page.waitForLoadState('networkidle'); // Wait for load from second subdir
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/subdir2/subdir2_imageX.jpg'); // Ensure second subdir is loaded
+
+    await page.locator('#up-btn').click();
+    await page.waitForLoadState('networkidle'); // Wait for load from first subdir
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/subdir1/subdir1_imageA.jpg');
+    await expect(page.locator('#filename-input')).toHaveValue('subdir1_imageA.jpg');
+    await expect(page.locator('#current-directory-prefix')).toHaveText('/mock-images/');
+    await expect(page.locator('#subdir-input')).toHaveValue('subdir1');
   });
 
   test('should search for a specific filename', async ({ page }) => {
