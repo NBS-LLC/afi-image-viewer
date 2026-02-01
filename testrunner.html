@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Behavioral Tests</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test-results { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
+        .test-pass { color: green; }
+        .test-fail { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Behavioral Test Runner</h1>
+    <div id="test-results" class="test-results">
+        Loading tests...
+    </div>
+
+    <!-- Include the utility functions -->
+    <script src="utils.js"></script>
+    <!-- Include the behavioral tests -->
+    <script src="tests/behavioral.test.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const resultsContainer = document.getElementById('test-results');
+            resultsContainer.innerHTML = '<h2>Running Tests...</h2>';
+
+            const testResults = runTests(); // Assuming runTests is global from behavioral.test.js
+
+            let html = '<h2>Test Results</h2>';
+            testResults.forEach(r => {
+                const statusClass = r.status === 'PASSED' ? 'test-pass' : 'test-fail';
+                html += `<p class="${statusClass}"><strong>${r.status}</strong>: ${r.name}`;
+                if (r.error) {
+                    html += ` - <span class="test-fail">${r.error}</span>`;
+                }
+                html += `</p>`;
+            });
+            resultsContainer.innerHTML = html;
+        });
+    </script>
+</body>
+</html>
