@@ -135,7 +135,7 @@
         <div id="file-info-container">
             <span id="current-directory-prefix"></span>
             <input type="text" id="subdir-input" />
-            <span>/</span>
+            <span id="subdir-separator">/</span>
             <input type="text" id="filename-input" />
         </div>
         <div id="controls">
@@ -158,6 +158,7 @@
             const downBtn = document.getElementById('down-btn');
             const filenameInput = document.getElementById('filename-input');
             const subdirInput = document.getElementById('subdir-input');
+            const subdirSeparator = document.getElementById('subdir-separator');
             const currentDirectoryPrefix = document.getElementById('current-directory-prefix');
             const fileInfoContainer = document.getElementById('file-info-container');
             
@@ -172,6 +173,7 @@
                 downBtn.style.display = useSubdirs ? 'inline-block' : 'none';
                 subdirInput.style.display = useSubdirs ? 'inline-block' : 'none'; // Show/hide subdir input
                 currentDirectoryPrefix.style.display = useSubdirs ? 'inline-block' : 'none'; // Show/hide prefix
+                subdirSeparator.style.display = useSubdirs ? 'inline-block' : 'none'; // Show/hide separator
                 // Reload images when checkbox state changes
                 if (urlInput.value) {
                     loadImages(urlInput.value);
@@ -298,6 +300,7 @@
                             filenameInput.style.display = 'none';
                             subdirInput.style.display = 'none';
                             currentDirectoryPrefix.style.display = 'none';
+                            subdirSeparator.style.display = 'none'; // Hide separator if no images in subdir
                         }
                     } else {
                         messageContainer.textContent = "No subdirectories found.";
@@ -309,12 +312,14 @@
                         filenameInput.style.display = 'none'; // Ensure hidden if no subdirs
                         subdirInput.style.display = 'none';
                         currentDirectoryPrefix.style.display = 'none';
+                        subdirSeparator.style.display = 'none'; // Hide separator if no subdirs
                         return;
                     }
     
                 } else {
                     currentDirectoryPrefix.textContent = '';
                     subdirInput.value = '';
+                    subdirSeparator.style.display = 'none'; // Hide separator in non-subdir mode
                     links.forEach(link => {
                         const href = link.getAttribute('href');
                         if (href.match(/\.(jpe?g|png|gif)$/i)) {
@@ -347,6 +352,7 @@
                     fileInfoContainer.style.display = 'none';
                     currentDirectoryPrefix.textContent = '';
                     subdirInput.value = '';
+                    subdirSeparator.style.display = 'none'; // Hide separator if no images
                     return;
                 }
     
@@ -359,6 +365,7 @@
                 if (hasSubdirsCheckbox.checked) {
                     subdirInput.style.display = 'inline-block';
                     currentDirectoryPrefix.style.display = 'inline-block';
+                    subdirSeparator.style.display = 'inline-block'; // Show separator when subdirs are active
                 }
               } catch (error) {
                 console.error("Error fetching or parsing the file index:", error);
@@ -368,6 +375,7 @@
                 fileInfoContainer.style.display = 'none';
                 currentDirectoryPrefix.textContent = '';
                 subdirInput.value = '';
+                subdirSeparator.style.display = 'none'; // Hide separator on error
               }
             }
             
@@ -379,6 +387,7 @@
                 filenameInput.style.display = 'block';
                 subdirInput.style.display = 'inline-block';
                 currentDirectoryPrefix.style.display = 'inline-block';
+                subdirSeparator.style.display = 'inline-block'; // Show separator
                 const doc = await fetchDirectory(subdirUrl);
                 const links = doc.querySelectorAll('a');
                 images = [];
@@ -419,6 +428,7 @@
                     }
                     currentDirectoryPrefix.textContent = ''; // Clear directory display
                     subdirInput.value = '';
+                    subdirSeparator.style.display = 'none'; // Hide separator
                     return;
                 };
                 imageElement.src = images[currentIndex];
@@ -433,11 +443,13 @@
                     subdirInput.value = lastPart;
                     subdirInput.style.display = 'inline-block';
                     currentDirectoryPrefix.style.display = 'inline-block';
+                    subdirSeparator.style.display = 'inline-block'; // Show separator
                 } else {
                     currentDirectoryPrefix.textContent = '';
                     subdirInput.value = '';
                     subdirInput.style.display = 'none';
                     currentDirectoryPrefix.style.display = 'none';
+                    subdirSeparator.style.display = 'none'; // Hide separator
                 }
     
                 imageElement.onload = () => {
@@ -576,11 +588,13 @@
                     downBtn.disabled = subdirs.length === 0 || currentSubdirIndex === subdirs.length - 1;
                     subdirInput.style.display = 'inline-block';
                     currentDirectoryPrefix.style.display = 'inline-block';
+                    subdirSeparator.style.display = 'inline-block'; // Show separator
                 } else {
                     upBtn.disabled = true;
                     downBtn.disabled = true;
                     subdirInput.style.display = 'none';
                     currentDirectoryPrefix.style.display = 'none';
+                    subdirSeparator.style.display = 'none'; // Hide separator
                 }
             }
         </script>
