@@ -257,20 +257,39 @@ test.describe('AFI Image Viewer E2E Tests', () => {
 
   test('should search for a specific filename', async ({ page }) => {
     // Precondition: Load multiple images.
-    // Steps:
-    // 1. Type a valid filename into the filename input.
-    // 2. Press Enter.
-    // 3. Expect the image matching the filename to be displayed.
-    // 4. Expect the filename input value to match the searched name.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#url-form button[type="submit"]').click();
+    await page.waitForLoadState('networkidle'); // Ensure initial load completes
+
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image1.jpg'); // Ensure first image is loaded
+
+    // Type a valid filename into the filename input.
+    await page.locator('#filename-input').fill('image2.png');
+    // Press Enter.
+    await page.keyboard.press('Enter');
+
+    // Expect the image matching the filename to be displayed.
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/image2.png');
+    // Expect the filename input value to match the searched name.
+    await expect(page.locator('#filename-input')).toHaveValue('image2.png');
   });
 
   test('should search for a specific subdirectory', async ({ page }) => {
     // Precondition: Load images from a URL with multiple subdirectories, "has sub-dirs" checked.
-    // Steps:
-    // 1. Type a valid subdirectory name into the subdir input.
-    // 2. Press Enter.
-    // 3. Expect images from the matching subdirectory to be displayed.
-    // 4. Expect subdir input value to match the searched name.
+    await page.locator('#url-input').fill('http://localhost/mock-images/');
+    await page.locator('#has-subdirs').check();
+    await page.waitForLoadState('networkidle'); // Ensure initial load from first subdir completes
+
+    // Type a valid subdirectory name into the subdir input.
+    await page.locator('#subdir-input').fill('subdir2');
+    // Press Enter.
+    await page.keyboard.press('Enter');
+    await page.waitForLoadState('networkidle'); // Wait for load from searched subdir
+
+    // Expect images from the matching subdirectory to be displayed.
+    await expect(page.locator('#image')).toHaveAttribute('src', 'http://localhost/mock-images/subdir2/subdir2_imageX.jpg');
+    // Expect subdir input value to match the searched name.
+    await expect(page.locator('#subdir-input')).toHaveValue('subdir2');
   });
 
   // --- Keyboard Navigation ---
